@@ -1,5 +1,7 @@
 <?php
 
+namespace Plivo;
+
 // try to use HTTP/Request2 else use curl
 if ((@include 'HTTP/Request2.php') == 'OK') {
     define("PLIVO_USE_CURL", FALSE);
@@ -7,10 +9,7 @@ if ((@include 'HTTP/Request2.php') == 'OK') {
     define("PLIVO_USE_CURL", TRUE);
 }
 
-
-
-class PlivoError extends Exception { }
-
+class PlivoError extends \Exception {}
 
 function validate_signature($uri, $post_params=array(), $signature, $auth_token) {
     ksort($post_params);
@@ -21,14 +20,10 @@ function validate_signature($uri, $post_params=array(), $signature, $auth_token)
     return $generated_signature == $signature;
 }
 
-
 class RestAPI {
     private $api;
-
     private $auth_id;
-
     private $auth_token;
-
     private $ch;
 
     function __construct($auth_id, $auth_token, $url="https://api.plivo.com", $version="v1") {
@@ -39,7 +34,7 @@ class RestAPI {
             throw new PlivoError("no auth_token");
         }
         $this->version = $version;
-        $this->api = $url."/".$this->version."/Account/".$auth_id;
+        $this->api = $url . "/" . $this->version . "/Account/" . $auth_id;
         $this->auth_id = $auth_id;
         $this->auth_token = $auth_token;
         $this->ch = NULL;
@@ -49,20 +44,18 @@ class RestAPI {
         $url = $this->api.rtrim($path, '/').'/';
 
         // init curl if needed
-        if ($this->ch === NULL) {
-            $this->ch = @curl_init();
-            if (curl_errno($this->ch)) {
-                return array("status" => 0, "response" => array("error" => curl_error($this->ch)));
-            }
+        $this->ch = @curl_init();
+        if (curl_errno($this->ch)) {
+            return array("status" => 0, "response" => array("error" => curl_error($this->ch)));
         }
 
         if (($method == "GET") || ($method == "DELETE")) {
-            $query = http_build_query($params, '', "&");
+            $query = http_build_query($params, "", "&");
             if (($query != NULL) && ($query != "")) {
-                    $url = $url."?".$query;
+                $url = $url . "?" . $query;
             }
         }
-
+        
         $options = array(
             CURLOPT_URL => $url,
             CURLOPT_USERAGENT => "PHPPlivo/Curl",
@@ -78,60 +71,60 @@ class RestAPI {
         );
 
         $headers = array(
-            'Authorization: Basic '. base64_encode($this->auth_id.":".$this->auth_token),
-            'Connection' => 'close'
+            "Authorization: Basic " . base64_encode($this->auth_id . ":" . $this->auth_token),
+            "Connection" => "close"
         );
 
         if ($method == "POST") {
-                $json_params = json_encode($params);
-                $options[CURLOPT_POSTFIELDS] = $json_params;
-                $options[CURLOPT_POST] = TRUE;
-                array_push($headers, "Content-Type:application/json");
-                array_push($headers, 'Content-Length: '.strlen($json_params));
+            $json_params = json_encode($params);
+            $options[CURLOPT_POSTFIELDS] = $json_params;
+            $options[CURLOPT_POST] = TRUE;
+            array_push($headers, "Content-Type: application/json");
+            array_push($headers, "Content-Length: " . strlen($json_params));
         }
 
         $options[CURLOPT_HTTPHEADER] = $headers;
-
+        
         curl_setopt_array($this->ch, $options);
-
+        
         $res = @curl_exec($this->ch);
         $status = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
         if ($res === FALSE) {
-                $err = curl_error($this->ch);
-                @curl_close($this->ch);
-                return array("status" => $status, "response" => array("error" => $err));
+            $err = curl_error($this->ch);
+            @curl_close($this->ch);
+            return array("status" => $status, "response" => array("error" => $err));
         }
         @curl_close($this->ch);
         $result = json_decode($res, TRUE);
         return array("status" => $status, "response" => $result);
     }
-
+    
     private function http2_request($method, $path, $params) {
-        $url = $this->api.rtrim($path, '/').'/';
+        $url = $this->api.rtrim($path, '/') . '/';
         if (!strcmp($method, "POST")) {
-            $req = new HTTP_Request2($url, HTTP_Request2::METHOD_POST);
-            $req->setHeader('Content-type: application/json');
+            $req = new \HTTP_Request2($url, \HTTP_Request2::METHOD_POST);
+            $req->setHeader("Content-type: application/json");
             if ($params) {
                 $req->setBody(json_encode($params));
             }
         } else if (!strcmp($method, "GET")) {
-            $req = new HTTP_Request2($url, HTTP_Request2::METHOD_GET);
+            $req = new \HTTP_Request2($url, \HTTP_Request2::METHOD_GET);
             $url = $req->getUrl();
             $url->setQueryVariables($params);
         } else if (!strcmp($method, "DELETE")) {
-            $req = new HTTP_Request2($url, HTTP_Request2::METHOD_DELETE);
+            $req = new \HTTP_Request2($url, \HTTP_Request2::METHOD_DELETE);
             $url = $req->getUrl();
             $url->setQueryVariables($params);
         }
         $req->setAdapter('curl');
         $req->setConfig(array(
-            'timeout' => 30,
-            'ssl_verify_peer' => FALSE,
+            "timeout" => 30,
+            "ssl_verify_peer" => FALSE,
         ));
-        $req->setAuth($this->auth_id, $this->auth_token, HTTP_Request2::AUTH_BASIC);
+        $req->setAuth($this->auth_id, $this->auth_token, \HTTP_Request2::AUTH_BASIC);
         $req->setHeader(array(
-            'Connection' => 'close',
-            'User-Agent' => 'PHPPlivo',
+            "Connection" => "close",
+            "User-Agent" => "PHP-Plivo",
         ));
         $r = $req->send();
         $status = $r->getStatus();
@@ -139,14 +132,14 @@ class RestAPI {
         $response = json_decode($body, true);
         return array("status" => $status, "response" => $response);
     }
-
+    
     private function request($method, $path, $params=array()) {
         if (PLIVO_USE_CURL === TRUE) {
             return $this->curl_request($method, $path, $params);
         }
         return $this->http2_request($method, $path, $params);
     }
-
+    
     private function pop($params, $key) {
         $val = $params[$key];
         if (!$val) {
@@ -155,53 +148,53 @@ class RestAPI {
         unset($params[$key]);
         return $val;
     }
-
+    
     ## Accounts ##
     public function get_account($params=array()) {
         return $this->request('GET', '', $params);
     }
-
+    
     public function modify_account($params=array()) {
         return $this->request('POST', '', $params);
     }
-
+    
     public function get_subaccounts($params=array()) {
         return $this->request('GET', '/Subaccount/', $params);
     }
-
+    
     public function create_subaccount($params=array()) {
         return $this->request('POST', '/Subaccount/', $params);
     }
-
+    
     public function get_subaccount($params=array()) {
         $subauth_id = $this->pop($params, "subauth_id");
         return $this->request('GET', '/Subaccount/'.$subauth_id.'/', $params);
     }
-
+    
     public function modify_subaccount($params=array()) {
         $subauth_id = $this->pop($params, "subauth_id");
         return $this->request('POST', '/Subaccount/'.$subauth_id.'/', $params);
     }
-
+    
     public function delete_subaccount($params=array()) {
         $subauth_id = $this->pop($params, "subauth_id");
         return $this->request('DELETE', '/Subaccount/'.$subauth_id.'/', $params);
     }
-
+    
     ## Applications ##
     public function get_applications($params=array()) {
         return $this->request('GET', '/Application/', $params);
     }
-
+    
     public function create_application($params=array()) {
         return $this->request('POST', '/Application/', $params);
     }
-
+    
     public function get_application($params=array()) {
         $app_id = $this->pop($params, "app_id");
         return $this->request('GET', '/Application/'.$app_id.'/', $params);
     }
-
+    
     public function modify_application($params=array()) {
         $app_id = $this->pop($params, "app_id");
         return $this->request('POST', '/Application/'.$app_id.'/', $params);
@@ -567,10 +560,6 @@ class RestAPI {
         return $this->request('GET', '/Pricing/', $params);
     }
 
-    ## Outgoing Carriers ##
-
-    ## To be added here ##
-
     ## Message ##
     public function send_message($params=array()) {
         return $this->request('POST', '/Message/', $params);
@@ -587,19 +576,14 @@ class RestAPI {
 }
 
 
-/* XML */
+## XML ##
 
 class Element {
     protected $nestables = array();
-
     protected $valid_attributes = array();
-
     protected $attributes = array();
-
     protected $name;
-
     protected $body = NULL;
-
     protected $childs = array();
 
     function __construct($body='', $attributes=array()) {
@@ -616,7 +600,7 @@ class Element {
             $this->attributes[$key] = $this->convert_value($value);
         }
     }
-
+    
     protected function convert_value($v) {
         if ($v === TRUE) {
             return "true";
@@ -721,12 +705,12 @@ class Element {
             $child->asChild($child_xml);
         }
     }
-
+    
     public function toXML($header=FALSE) {
         if (!(isset($xmlstr))) {
             $xmlstr = '';
         }
-
+        
         if ($this->body) {
             $xmlstr .= "<".$this->getName().">".htmlspecialchars($this->body)."</".$this->getName().">";
         } else {
@@ -742,33 +726,35 @@ class Element {
         }
         return $xml->asXML();
     }
-
+    
     public function __toString() {
         return $this->toXML();
     }
-
+    
 }
 
 class Response extends Element {
-    protected $nestables = array('Speak', 'Play', 'GetDigits', 'Record',
-                                 'Dial', 'Redirect', 'Wait', 'Hangup',
-                                 'PreAnswer', 'Conference', 'DTMF', 'Message');
-
+    protected $nestables = array(
+        'Speak', 'Play', 'GetDigits', 'Record',
+        'Dial', 'Redirect', 'Wait', 'Hangup',
+        'PreAnswer', 'Conference', 'DTMF', 'Message'
+    );
+    
     function __construct() {
         parent::__construct(NULL);
     }
-
+    
     public function toXML() {
         $xml = parent::toXML($header=TRUE);
         return $xml;
     }
 }
 
-
 class Speak extends Element {
     protected $nestables = array();
-
-    protected $valid_attributes = array('voice', 'language', 'loop');
+    protected $valid_attributes = array(
+        'voice', 'language', 'loop'
+    );
 
     function __construct($body, $attributes=array()) {
         parent::__construct($body, $attributes);
@@ -780,7 +766,6 @@ class Speak extends Element {
 
 class Play extends Element {
     protected $nestables = array();
-
     protected $valid_attributes = array('loop');
 
     function __construct($body, $attributes=array()) {
@@ -793,8 +778,9 @@ class Play extends Element {
 
 class Wait extends Element {
     protected $nestables = array();
-
-    protected $valid_attributes = array('length', 'silence', 'min_silence', 'minSilence', 'beep');
+    protected $valid_attributes = array(
+        'length', 'silence', 'min_silence', 'minSilence', 'beep'
+    );
 
     function __construct($attributes=array()) {
         parent::__construct(NULL, $attributes);
@@ -803,7 +789,6 @@ class Wait extends Element {
 
 class Redirect extends Element {
     protected $nestables = array();
-
     protected $valid_attributes = array('method');
 
     function __construct($body, $attributes=array()) {
@@ -816,7 +801,6 @@ class Redirect extends Element {
 
 class Hangup extends Element {
     protected $nestables = array();
-
     protected $valid_attributes = array('schedule', 'reason');
 
     function __construct($attributes=array()) {
@@ -826,11 +810,12 @@ class Hangup extends Element {
 
 class GetDigits extends Element {
     protected $nestables = array('Speak', 'Play', 'Wait');
-
-    protected $valid_attributes = array('action', 'method', 'timeout', 'digitTimeout',
-                                        'numDigits', 'retries', 'invalidDigitsSound',
-                                        'validDigits', 'playBeep', 'redirect', "finishOnKey",
-                                        'digitTimeout', 'log');
+    protected $valid_attributes = array(
+        'action', 'method', 'timeout', 'digitTimeout',
+        'numDigits', 'retries', 'invalidDigitsSound',
+        'validDigits', 'playBeep', 'redirect', "finishOnKey",
+        'digitTimeout', 'log'
+    );
 
     function __construct($attributes=array()) {
         parent::__construct(NULL, $attributes);
@@ -839,8 +824,9 @@ class GetDigits extends Element {
 
 class Number extends Element {
     protected $nestables = array();
-
-    protected $valid_attributes = array('sendDigits', 'sendOnPreanswer', 'sendDigitsMode');
+    protected $valid_attributes = array(
+        'sendDigits', 'sendOnPreanswer', 'sendDigitsMode'
+    );
 
     function __construct($body, $attributes=array()) {
         parent::__construct($body, $attributes);
@@ -852,8 +838,9 @@ class Number extends Element {
 
 class User extends Element {
     protected $nestables = array();
-
-    protected $valid_attributes = array('sendDigits', 'sendOnPreanswer', 'sipHeaders');
+    protected $valid_attributes = array(
+        'sendDigits', 'sendOnPreanswer', 'sipHeaders'
+    );
 
     function __construct($body, $attributes=array()) {
         parent::__construct($body, $attributes);
@@ -865,12 +852,13 @@ class User extends Element {
 
 class Dial extends Element {
     protected $nestables = array('Number', 'User');
-
-    protected $valid_attributes = array('action','method','timeout','hangupOnStar',
-                                        'timeLimit','callerId', 'callerName', 'confirmSound',
-                                        'dialMusic', 'confirmKey', 'redirect',
-                                        'callbackUrl', 'callbackMethod', 'digitsMatch',
-                                        'sipHeaders');
+    protected $valid_attributes = array(
+        'action','method','timeout','hangupOnStar',
+        'timeLimit','callerId', 'callerName', 'confirmSound',
+        'dialMusic', 'confirmKey', 'redirect',
+        'callbackUrl', 'callbackMethod', 'digitsMatch',
+        'sipHeaders'
+    );
 
     function __construct($attributes=array()) {
         parent::__construct(NULL, $attributes);
@@ -879,15 +867,16 @@ class Dial extends Element {
 
 class Conference extends Element {
     protected $nestables = array();
-
-    protected $valid_attributes = array('muted','beep','startConferenceOnEnter',
-                                        'endConferenceOnExit','waitSound','enterSound', 'exitSound',
-                                        'timeLimit', 'hangupOnStar', 'maxMembers',
-                                        'record', 'recordFileFormat','recordWhenAlone', 'action', 'method', 'redirect',
-                                        'digitsMatch', 'callbackUrl', 'callbackMethod',
-                                        'stayAlone', 'floorEvent',
-                                        'transcriptionType', 'transcriptionUrl',
-                                        'transcriptionMethod', 'relayDTMF');
+    protected $valid_attributes = array(
+        'muted','beep','startConferenceOnEnter',
+        'endConferenceOnExit','waitSound','enterSound', 'exitSound',
+        'timeLimit', 'hangupOnStar', 'maxMembers',
+        'record', 'recordFileFormat','recordWhenAlone', 'action', 'method', 'redirect',
+        'digitsMatch', 'callbackUrl', 'callbackMethod',
+        'stayAlone', 'floorEvent',
+        'transcriptionType', 'transcriptionUrl',
+        'transcriptionMethod', 'relayDTMF'
+    );
 
     function __construct($body, $attributes=array()) {
         parent::__construct($body, $attributes);
@@ -899,13 +888,14 @@ class Conference extends Element {
 
 class Record extends Element {
     protected $nestables = array();
-
-    protected $valid_attributes = array('action', 'method', 'timeout','finishOnKey',
-                                        'maxLength', 'playBeep', 'recordSession',
-                                        'startOnDialAnswer', 'redirect', 'fileFormat',
-                                        'callbackUrl', 'callbackMethod',
-                                        'transcriptionType', 'transcriptionUrl',
-                                        'transcriptionMethod');
+    protected $valid_attributes = array(
+        'action', 'method', 'timeout','finishOnKey',
+        'maxLength', 'playBeep', 'recordSession',
+        'startOnDialAnswer', 'redirect', 'fileFormat',
+        'callbackUrl', 'callbackMethod',
+        'transcriptionType', 'transcriptionUrl',
+        'transcriptionMethod'
+    );
 
     function __construct($attributes=array()) {
         parent::__construct(NULL, $attributes);
@@ -913,8 +903,10 @@ class Record extends Element {
 }
 
 class PreAnswer extends Element {
-    protected $nestables = array('Play', 'Speak', 'GetDigits', 'Wait', 'Redirect', 'Message', 'DTMF');
-
+    protected $nestables = array(
+        'Play', 'Speak', 'GetDigits', 'Wait', 
+        'Redirect', 'Message', 'DTMF'
+    );
     protected $valid_attributes = array();
 
     function __construct($attributes=array()) {
@@ -924,8 +916,10 @@ class PreAnswer extends Element {
 
 class Message extends Element {
     protected $nestables = array();
-
-    protected $valid_attributes = array('src', 'dst', 'type', 'callbackMethod', 'callbackUrl');
+    protected $valid_attributes = array(
+        'src', 'dst', 'type', 'callbackMethod', 
+        'callbackUrl'
+    );
 
     function __construct($body, $attributes=array()) {
         parent::__construct($body, $attributes);
@@ -937,7 +931,6 @@ class Message extends Element {
 
 class DTMF extends Element {
     protected $nestables = array();
-
     protected $valid_attributes = array('async');
 
     function __construct($body, $attributes=array()) {
@@ -948,6 +941,3 @@ class DTMF extends Element {
     }
 }
 
-
-
-?>

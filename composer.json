@@ -1,0 +1,30 @@
+{
+    "name": "plivo/plivo",
+    "description": "Plivo PHP helper library to access Plivo Cloud API / generate Plivo XMLs.",
+    "type": "library",
+    "keywords": ["plivo", "api", "xml", "cloud"],
+    "homepage": "https://github.com/plivo/plivo-php",
+    "require": {
+	"php": ">=5.2.0",
+        "pear/http_request2": "~2.2",
+	"plivo/plivo": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~4.0"
+    },
+    "minimum-stability": "dev",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Plivo Inc.",
+            "email": "hello@plivo.com"
+        }
+    ],
+    "support": {
+	"issues": "https://github.com/plivo/plivo-php/issues",
+	"source": "https://github.com/plivo/plivo-php"
+    },
+    "autoload": {
+        "psr-0": { "Plivo\\": "src/" }
+    }
+}
