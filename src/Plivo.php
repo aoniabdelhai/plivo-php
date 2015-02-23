@@ -2,7 +2,7 @@
 
 namespace Plivo;
 
-// try to use HTTP/Request2 else use curl
+# try to use HTTP/Request2 else use curl
 if ((@include 'HTTP/Request2.php') == 'OK') {
     define("PLIVO_USE_CURL", FALSE);
 } else {
@@ -43,7 +43,7 @@ class RestAPI {
     private function curl_request($method, $path, $params) {
         $url = $this->api.rtrim($path, '/').'/';
 
-        // init curl if needed
+        # init curl if needed
         $this->ch = @curl_init();
         if (curl_errno($this->ch)) {
             return array("status" => 0, "response" => array("error" => curl_error($this->ch)));
@@ -210,8 +210,8 @@ class RestAPI {
         return $this->request('GET', '/Number/', $params);
     }
 
-   ## This API is available only for US numbers with some limitations ##
-   ## Please use get_number_group and rent_from_number_group instead ##
+    ## This API is available only for US numbers with some limitations ##
+    ## Please use get_number_group and rent_from_number_group instead ##
     public function search_numbers($params=array()) {
         return $this->request('GET', '/AvailableNumber/', $params);
     }
@@ -222,7 +222,7 @@ class RestAPI {
     }
 
     ## This API is available only for US numbers with some limitations ##
-   ## Please use get_number_group and rent_from_number_group instead ##
+    ## Please use get_number_group and rent_from_number_group instead ##
     public function rent_number($params=array()) {
         $number = $this->pop($params, "number");
         return $this->request('POST', '/AvailableNumber/'.$number.'/');

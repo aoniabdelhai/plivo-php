@@ -1,7 +1,6 @@
 <?php 
 
-require 'vendor/autoload.php';
+require_once __DIR__ . '/../src/Plivo.php';
 
-use Plivo\Plivo;
+use Plivo;
 
-$A = new RestAPI();
